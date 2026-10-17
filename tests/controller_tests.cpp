@@ -32,5 +32,17 @@ int main() {
     check(!lament::combatRequested(11, 11, 12, 0, true, true), "battle disabled");
     check(!lament::combatRequested(11, 11, 12, 0, false, false), "scene absent");
     check(!lament::combatRequested(0xffffffff, 11, 12, 0, false, true), "non-battle");
+    lament::MainGainGuard guard;
+    check(near(guard.select(false, false, 0.4f, 1), 0.4f), "ordinary native fade-in must be retained");
+    check(near(guard.select(true, false, 0, 0), 1), "combat must not fade the base");
+    check(near(guard.select(false, false, 0.133f, 1), 1), "cleared battle flags must not cut the base to 13 percent");
+    for (float gain : {0.3f, 0.65f, 0.99f, 1.0f})
+        check(near(guard.select(false, false, gain, 1), 1), "base gain must stay continuous through native recovery");
+    check(near(guard.select(false, false, 0.7f, 0), 0.7f), "a genuine later fade-out must still work");
+    guard.select(true, false, 0, 0);
+    check(near(guard.select(false, true, 0.25f, 0), 0.25f), "other sub music must retain native attenuation");
+    check(near(guard.select(false, false, 0.3f, 1), 0.3f), "sub music takeover must clear battle recovery");
+    guard.select(true, false, 0, 0);guard.reset();
+    check(near(guard.select(false, false, 0.5f, 1), 0.5f), "reload must clear battle recovery");
     std::cout << "Controller checks passed\n";
 }

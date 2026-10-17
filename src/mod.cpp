@@ -72,6 +72,7 @@ JAISoundHandle replacement;
 AudioSoundTableHandle streamRegistration = 0;
 u16 streamIndex = 0;
 lament::CombatFade fade;
+lament::MainGainGuard mainGainGuard;
 unsigned searchDepth = 0;
 bool shuttingDown = false;
 bool originalMuted = false;
@@ -120,6 +121,7 @@ void stopReplacement(Z2SeqMgr* seq) {
     }
     restoreOriginal(seq);
     fade.reset();
+    mainGainGuard.reset();
     haveTime = false;
 }
 bool startReplacement(Z2SeqMgr* seq) {
@@ -145,6 +147,7 @@ bool startReplacement(Z2SeqMgr* seq) {
         child->mMove.moveVolume(i < 2 ? 1.0f : 0.0f, 0);
     }
     fade.reset();
+    mainGainGuard.reset();
     haveTime = false;
     startWarned = false;
     svc_log->info(mod_ctx, "Adaptive stream preparing (base L/R + battle L/R)");
@@ -209,8 +212,10 @@ void updateMusic(ModContext*, void* args, void*, void*) {
     // Bypass the main BGM's combat-only fade, while retaining ducking due to
     // dialogue, menus, fanfares, scene fades and a non-battle sub-BGM takeover.
     const bool battle = battleId(seq->getSubBgmID());
-    const float mainGain = (battle || seq->mBattleSeqState != 0 ||
-        seq->mBattleSeqCount != 0) ? 1.0f : seq->mMainBgmMaster.get();
+    const bool battleContext = battle || seq->mBattleSeqState != 0 || seq->mBattleSeqCount != 0;
+    const bool otherSubMusic = seq->getSubBgmID() != 0xffffffffu && !battle;
+    const float mainGain = mainGainGuard.select(battleContext, otherSubMusic,
+        seq->mMainBgmMaster.get(), seq->mMainBgmMaster.getDest());
     replacement->getAuxiliary().moveVolume(
         sceneGain(seq) * mainGain * seq->mMainBgmHandle->getFader()->getIntensity(), 0);
     seq->mMainBgmHandle->getAuxiliary().moveVolume(0.0f, 0);

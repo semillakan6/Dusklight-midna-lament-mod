@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.3
+
+- Licensed the mod's original code under GPL-3.0-only; third-party audio is excluded.
+
+- Fixed a brief drop in the whole track's volume when combat ends.
+- Kept the base level steady while the native battle fade recovers.
+- Preserved the 0.5-second entry and 1.5-second exit fades and existing audio.
+
 ## 1.0.2
 
 - Added builds for all eight platforms in the official Dusklight mod template.

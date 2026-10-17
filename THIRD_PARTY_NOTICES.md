@@ -2,7 +2,7 @@
 
 Mod: Nebur. Musical arrangement: Wesley Damaschino. Original Twilight Princess
 music and game materials belong to their respective rights holders. Audio is
-excluded from the mod's personal-use license; attribution does not grant rights.
+excluded from the mod code's GPL-3.0-only license; attribution does not grant rights.
 
 Build infrastructure is adapted from TwilitRealm/mod-template at
 10cd79ed4210aaffadb554aac5f3d61476132539. The SDK is downloaded from

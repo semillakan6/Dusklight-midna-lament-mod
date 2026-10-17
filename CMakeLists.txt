@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.26)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
-project(midna_lament_battle VERSION 1.0.2 LANGUAGES CXX)
+project(midna_lament_battle VERSION 1.0.3 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # The game headers use __cplusplus to decide whether nullptr needs emulation.
