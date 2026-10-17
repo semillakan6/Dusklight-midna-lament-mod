@@ -1,0 +1,31 @@
+name: Runtime validation drivers
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - 'tests/lifecycle_probe.cpp'
+      - 'tests/section_probe.cpp'
+      - '.github/workflows/runtime-probes.yml'
+permissions:
+  contents: read
+jobs:
+  probes:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
+      - name: Install ninja
+        run: choco install ninja
+      - name: Configure validation drivers only
+        run: cmake -S . -B build-probes -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTING=OFF -DLAMENT_SECTION_PROBE=ON -DLAMENT_LIFECYCLE_PROBE=ON
+      - name: Build validation drivers only
+        run: cmake --build build-probes --target section_probe_package lifecycle_probe_package --parallel
+      - uses: actions/upload-artifact@v7
+        with:
+          name: probes-windows-amd64
+          path: |
+            build-probes/mods/section_probe.dusk
+            build-probes/mods/lifecycle_probe.dusk
+          if-no-files-found: error

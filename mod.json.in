@@ -1,0 +1,41 @@
+{
+  "id": "local.ruben.midna_lament_battle",
+  "name": "Midna's Lament - Adaptive Battle",
+  "version": "@PROJECT_VERSION@",
+  "author": "Nebur",
+  "description": "Custom Midna's Lament arrangement with synchronized combat instruments. Requires Dusklight 2.0.3.",
+  "abi": 1,
+  "imports": [
+    {
+      "service_id": "dev.twilitrealm.dusklight.audio_res",
+      "major": 1,
+      "min_minor": 0,
+      "optional": false
+    },
+    {
+      "service_id": "dev.twilitrealm.dusklight.game",
+      "major": 2,
+      "min_minor": 0,
+      "optional": false
+    },
+    {
+      "service_id": "dev.twilitrealm.dusklight.hook",
+      "major": 1,
+      "min_minor": 1,
+      "optional": false
+    },
+    {
+      "service_id": "dev.twilitrealm.dusklight.host",
+      "major": 2,
+      "min_minor": 2,
+      "optional": false
+    },
+    {
+      "service_id": "dev.twilitrealm.dusklight.log",
+      "major": 1,
+      "min_minor": 0,
+      "optional": false
+    }
+  ],
+  "exports": []
+}

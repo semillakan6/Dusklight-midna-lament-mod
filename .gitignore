@@ -1,0 +1,12 @@
+build*/
+dusklight/
+.cache/
+__pycache__/
+*.pyc
+*.wav
+*.gci
+*.iso
+*.exe
+*.dll
+*.so
+validation/runtime*/
