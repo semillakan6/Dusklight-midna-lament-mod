@@ -9,7 +9,7 @@ with zipfile.ZipFile(a.bundle) as z:
  expected={'mod.json','overlay/Audiores/Stream/midna_lament_adaptive.ast'}|{'lib/'+platform+('/mod.dll' if platform.startswith('windows-') else '/mod.so') for platform in ASSETS}
  require(set(names)==expected and len(names)==len(expected),'Unexpected/missing/duplicate package entries')
  m=json.loads(z.read('mod.json'))
- require(m['id']=='local.ruben.midna_lament_battle' and m['version']=='1.0.2' and m['author']=='Nebur','Wrong identity')
+ require(m['id']=='local.ruben.midna_lament_battle' and m['version']=='1.0.3' and m['author']=='Nebur','Wrong identity')
  expected_imports={'audio_res':(1,0),'game':(2,0),'hook':(1,1),'host':(2,2),'log':(1,0)}
  require(type(m.get('abi')) is int and m['abi']==1 and m.get('exports')==[],'Wrong native ABI/exports')
  actual={i['service_id'].removeprefix('dev.twilitrealm.dusklight.'):(i['major'],i['min_minor']) for i in m.get('imports',[])}
@@ -18,5 +18,5 @@ with zipfile.ZipFile(a.bundle) as z:
 for platform in ASSETS:
  report=json.loads((a.reports/(platform+'.json')).read_text())
  require(report['platform']==platform and len(report['required_symbols'])==23,'Missing platform compatibility evidence')
-result={'file':a.bundle.name,'version':'1.0.2','sha256':hashlib.sha256(a.bundle.read_bytes()).hexdigest(),'bytes':a.bundle.stat().st_size,'platforms':sorted(ASSETS),'manifest_and_payload':'passed','native_metadata':'verified by symgen against all eight libraries','runtime':'See separate isolated runtime report; this check does not run the game.'}
+result={'file':a.bundle.name,'version':'1.0.3','sha256':hashlib.sha256(a.bundle.read_bytes()).hexdigest(),'bytes':a.bundle.stat().st_size,'platforms':sorted(ASSETS),'manifest_and_payload':'passed','native_metadata':'verified by symgen against all eight libraries','runtime':'See separate isolated runtime report; this check does not run the game.'}
 (a.bundle.parent/'SHA256.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result,indent=2))

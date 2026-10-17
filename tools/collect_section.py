@@ -10,10 +10,15 @@ a=p.parse_args()
 smoke=json.loads((a.profile/"smoke-report.json").read_text(encoding="utf-8"))
 assert smoke["original_save_and_config_hashes_unchanged"] and smoke["game_exit_code"]==0
 log="\n".join(f.read_text(encoding="utf-8",errors="replace") for f in sorted((a.profile/"logs").glob("*.log")))
-evidence=[line for line in log.splitlines() if "SECTION " in line or "Adaptive " in line or "HANDOFF " in line]
+evidence=[line for line in log.splitlines() if "SECTION " in line or "Adaptive " in line or "HANDOFF " in line or "RECOVERY " in line]
 match=re.search(r"SECTION COMPLETE: (\d+) checks, (\d+) failures, (\d+) native entries, (\d+) native exits",log)
 assert match,"Observer did not finish"
 checks,failures,entries,exits=map(int,match.groups())
+recovery_match=re.search(r"RECOVERY COMPLETE: (\d+) frames, (\d+) failures, (\d+) episodes",log)
+assert recovery_match,"Recovery regression observer did not finish"
+recovery_frames,recovery_failures,recovery_episodes=map(int,recovery_match.groups())
+assert recovery_frames>0 and recovery_failures==0 and recovery_episodes>0
+
 assert checks>0 and failures==0 and entries>=2 and exits>=1,(checks,failures,entries,exits)
 states=[]
 for line in evidence:
@@ -51,7 +56,7 @@ if m:
 report={"target":"Dusklight 2.0.3.0","save_slot":1,"stage":"F_SP122",
  "section_save_sha256":smoke["section_save_sha256"],"production_bundle_sha256":bundle_hash,
  "handoff":handoff,"observer_only":True,"music_or_battle_state_overrides":False,"actor_creation_or_movement":False,
- "checks":checks,"failures":failures,"native_combat_entries":entries,"native_combat_exits":exits,
+ "checks":checks,"failures":failures,"recovery_frames":recovery_frames,"recovery_failures":recovery_failures,"recovery_episodes":recovery_episodes,"native_combat_entries":entries,"native_combat_exits":exits,
  "native_music_selection":"0100005f (Z2BGM_MIDNA_SOS)","states":states,
  "original_saves_config_and_supplied_gci_unchanged":True,
  "copies_of_installed_mods_present":smoke["includes_copies_of_installed_mods"],

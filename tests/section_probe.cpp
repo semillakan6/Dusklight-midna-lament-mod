@@ -12,6 +12,7 @@
 #include "JSystem/JAudio2/JAISeq.h"
 #include <chrono>
 #include <cstdio>
+#include <cmath>
 DEFINE_MOD();
 IMPORT_SERVICE(HookService, svc_hook);
 IMPORT_SERVICE(LogService, test_log);
@@ -24,6 +25,8 @@ Clock::time_point since,changed;
 bool started=false, target=false;
 int lastSecond=-1;
 unsigned failures=0,checks=0,entries=0,exits=0;
+unsigned recoveryChecks=0,recoveryFailures=0,recoveryEpisodes=0;
+bool hadBattle=false, wasRecovering=false;
 unsigned nativeMixes=0,audibleNativeMixes=0,starts=0,readyStarts=0;
 Z2SceneMgr** scene=nullptr;
 Z2SeqMgr** sequence=nullptr;
@@ -83,6 +86,28 @@ void music(ModContext*,void*,void*,void*) {
   if(target)++entries;else ++exits;
   test_log->info(mod_ctx,target?"SECTION native combat entered":"SECTION native combat exited");
  }
+ // Inspect every framework frame: a one-second sampler can miss the dip.
+ const bool context=battle || seq->mBattleSeqState!=0 || seq->mBattleSeqCount!=0;
+ const bool otherSub=seq->getSubBgmID()!=0xffffffffu && !battle;
+ if(context && !otherSub)hadBattle=true;
+ const bool recovery=hadBattle && !context && !otherSub &&
+     seq->mMainBgmMaster.getDest()==1 && seq->mMainBgmMaster.get()<0.999f;
+ if(recovery && stream) {
+  const float expected=seq->mAllBgmMaster.get()*seq->mBgmPause.get()*seq->mFanfareMute.get()*
+      seq->mWindStone.get()*seq->mTwilightGateVol*seq->mSceneBgm.get()*seq->mStreamBgmMaster.get()*
+      seq->field_0x84.get()*seq->field_0xa4.get()*seq->mMainBgmHandle->getFader()->getIntensity();
+  const float actual=stream->getAuxiliary().params_.mVolume;
+  const bool ok=std::abs(actual-expected)<0.0001f;
+  ++recoveryChecks;if(!ok)++recoveryFailures;
+  report(ok,"combat-exit recovery preserves scene-adjusted replacement volume");
+  if(!wasRecovering) {
+   ++recoveryEpisodes;char text[180];
+   std::snprintf(text,sizeof(text),"RECOVERY sample: native_main_gain=%.6f applied_gain=%.6f expected_gain=%.6f",
+      seq->mMainBgmMaster.get(),actual,expected);test_log->info(mod_ctx,text);
+  }
+ }
+ wasRecovering=recovery;
+ if(!context && (otherSub || seq->mMainBgmMaster.getDest()!=1 || seq->mMainBgmMaster.get()>=0.999f))hadBattle=false;
  float age=std::chrono::duration<float>(now-since).count();
  int second=static_cast<int>(age);
  if(second==lastSecond)return;
@@ -135,6 +160,8 @@ MOD_EXPORT ModResult mod_shutdown(ModError*) {
  char text[180];
  std::snprintf(text,sizeof(text),"HANDOFF COMPLETE: %u native mixes, %u audible native mixes, %u ready starts, %u starts checked",
    nativeMixes,audibleNativeMixes,readyStarts,starts);
+ test_log->info(mod_ctx,text);
+ std::snprintf(text,sizeof(text),"RECOVERY COMPLETE: %u frames, %u failures, %u episodes",recoveryChecks,recoveryFailures,recoveryEpisodes);
  test_log->info(mod_ctx,text);
  std::snprintf(text,sizeof(text),"SECTION COMPLETE: %u checks, %u failures, %u native entries, %u native exits",
    checks,failures,entries,exits);

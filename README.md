@@ -1,11 +1,11 @@
 # Midna's Lament - Adaptive Battle
 
 Mod by **Nebur**. Arrangement by **Wesley Damaschino**.
-Requires **Dusklight 2.0.3**. Version **1.0.2**.
+Requires **Dusklight 2.0.3**. Version **1.0.3**.
 
 Replaces the music during the Midna's Lament story section. Extra combat
 instruments fade in over 0.5 seconds and out over 1.5 seconds. The base arrangement
-keeps playing. Other music selections use the game's original music.
+keeps playing at a steady level while the native battle fade recovers. Other music selections use the game's original music.
 
 ## Install
 
@@ -26,7 +26,7 @@ are separate from in-game testing; consult the delivered validation reports.
 
 One four-channel PCM16 AST contains base L/R and combat L/R, sharing a playback
 cursor and loop. The existing audio, loop boundaries and common gain adjustment
-are unchanged in 1.0.2. The prepared AST is committed for identical CI builds;
+are unchanged in 1.0.3. The prepared AST is committed for identical CI builds;
 original WAVs are not included. Tools for regenerating it from the original
 aligned 48 kHz stereo stems are under `tools/`.
 
