@@ -60,8 +60,11 @@ committed. Runtime tests use an extracted game copy and an explicit disposable
 
 ## Terms and credits
 
-Personal, non-commercial use only for the mod's own material. Do not redistribute,
-reupload or sell it. Link to the original mod page instead. See `LICENSE` and
-`THIRD_PARTY_NOTICES.md` for the scope of these terms and third-party exclusions.
-The arrangement is by Wesley Damaschino; no ownership of the audio or original
-Twilight Princess music is claimed.
+Copyright (C) 2026 Nebur. The mod's original code is licensed under the GNU
+General Public License version 3 only (SPDX: GPL-3.0-only). You may use, modify,
+and redistribute that code, including commercially, under the terms in `LICENSE`.
+
+The musical arrangement by Wesley Damaschino, recordings, original Twilight
+Princess music, and game materials are excluded from this license. No ownership
+of those materials or permission to redistribute them is claimed. See
+`THIRD_PARTY_NOTICES.md` for credits and upstream notices.
