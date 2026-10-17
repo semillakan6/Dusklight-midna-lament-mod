@@ -1,0 +1,163 @@
+name: Build
+
+on:
+  push:
+    branches: ["*"]
+    tags: ["*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SYMGEN_VERSION: v1.3.6
+
+jobs:
+  build:
+    name: Build ${{matrix.platform}}
+    runs-on: ${{matrix.runner}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x86_64
+            runner: ubuntu-latest
+          - platform: linux-aarch64
+            runner: ubuntu-24.04-arm
+          - platform: macos-arm64
+            runner: macos-latest
+          - platform: macos-x86_64
+            runner: macos-latest
+            cmake_args: -DCMAKE_OSX_ARCHITECTURES=x86_64
+          - platform: ios-arm64
+            runner: macos-latest
+            cmake_args: >-
+              -DCMAKE_SYSTEM_NAME=iOS
+              -DCMAKE_OSX_ARCHITECTURES=arm64
+              -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0
+          - platform: windows-amd64
+            runner: windows-latest
+            msvc_arch: amd64
+          - platform: windows-arm64
+            runner: windows-latest
+            msvc_arch: amd64_arm64
+          - platform: android-aarch64
+            runner: ubuntu-latest
+            android_ndk: "29.0.14206865"
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Read pinned Dusklight version
+        id: dusklight
+        shell: bash
+        run: echo "version=$(sed -n 's/.*set(DUSKLIGHT_VERSION "\([^"]*\)").*/\1/p' CMakeLists.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Dusklight sources
+        uses: actions/cache@v6
+        with:
+          path: dusklight
+          key: dusklight-${{runner.os}}-${{steps.dusklight.outputs.version}}
+
+      - name: Enable Visual Studio environment
+        if: matrix.msvc_arch
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{matrix.msvc_arch}}
+
+      - name: Install ninja
+        if: matrix.msvc_arch
+        run: choco install ninja
+
+      - name: Install Android NDK
+        if: matrix.android_ndk
+        uses: android-actions/setup-android@v4
+        with:
+          packages: ndk;${{matrix.android_ndk}}
+
+      - name: Configure CMake
+        shell: bash
+        run: |
+          tests=ON
+          case "${{matrix.platform}}" in windows-arm64|macos-x86_64|ios-arm64|android-aarch64) tests=OFF ;; esac
+          args=(-G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTING=$tests
+                -DLAMENT_RUNTIME_PROBE=OFF -DLAMENT_LIFECYCLE_PROBE=OFF -DLAMENT_SECTION_PROBE=OFF ${{matrix.cmake_args}})
+          if [[ -n "${{matrix.android_ndk}}" ]]; then
+            args+=(-DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/${{matrix.android_ndk}}/build/cmake/android.toolchain.cmake"
+                   -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-28)
+          fi
+          cmake -B build "${args[@]}"
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test fade controller
+        if: matrix.platform != 'windows-arm64' && matrix.platform != 'macos-x86_64' && matrix.platform != 'ios-arm64' && matrix.platform != 'android-aarch64'
+        run: ctest --test-dir build --output-on-failure
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install binary inspection tools
+        run: python -m pip install lief==0.17.6 zstandard==0.25.0
+      - name: Install AppImage extraction tool
+        if: startsWith(matrix.platform, 'linux-')
+        run: sudo apt-get update && sudo apt-get install -y squashfs-tools
+      - name: Validate against official game release
+        shell: bash
+        run: python tools/validate_platform.py --platform "${{matrix.platform}}" --bundle build/mods/midna_lament_battle.dusk --report "build/validation/${{matrix.platform}}.json"
+      - name: Upload validation evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: validation-${{matrix.platform}}
+          path: build/validation/*.json
+          if-no-files-found: error
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: mod-${{matrix.platform}}
+          path: build/mods/*.dusk
+          if-no-files-found: error
+
+  combine:
+    name: Combine bundles
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download platform bundles
+        uses: actions/download-artifact@v8
+        with:
+          pattern: mod-*
+          path: dist
+
+      - name: Install symgen
+        run: |
+          curl -fsSL -o symgen \
+            "https://github.com/encounter/symgen/releases/download/${SYMGEN_VERSION}/symgen-linux-x86_64"
+          chmod +x symgen
+
+      - name: Merge bundles
+        run: |
+          name=$(basename dist/mod-linux-x86_64/*.dusk)
+          python3 tools/merge_mod.py -o "combined/$name" --symgen ./symgen \
+            dist/*/*.dusk
+
+      - name: Download validation evidence
+        uses: actions/download-artifact@v8
+        with:
+          pattern: validation-*
+          path: combined/validation
+          merge-multiple: true
+      - name: Validate final distribution
+        run: python3 tools/validate_combined.py combined/midna_lament_battle.dusk --reports combined/validation
+      - name: Upload combined bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: mod-combined
+          path: combined/
+          if-no-files-found: error
+
