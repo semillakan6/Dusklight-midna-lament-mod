@@ -1,3 +1,10 @@
+// The game's forced global header defines NULL as integer zero. Recent MSVC
+// <stop_token> (included by <future>) requires a pointer-compatible NULL.
+#pragma push_macro("NULL")
+#undef NULL
+#define NULL nullptr
+#include <future>
+#pragma pop_macro("NULL")
 #include "mods/service.hpp"
 #include "mods/svc/audio_res.h"
 #include "mods/svc/host.h"
@@ -16,13 +23,7 @@
 #include "native_symbols.hpp"
 #include <chrono>
 #include <cstring>
-// The game's forced global header defines NULL as integer zero. Recent MSVC
-// <stop_token> (included by <future>) requires a pointer-compatible NULL.
-#pragma push_macro("NULL")
-#undef NULL
-#define NULL nullptr
-#include <future>
-#pragma pop_macro("NULL")
+
 
 namespace native {
 void (*moveVolume)(JAISoundParamsMove*, f32, u32) = nullptr;
