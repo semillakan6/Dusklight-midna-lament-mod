@@ -18,6 +18,12 @@ def parse(path):
  import lief
  binary=lief.parse(str(path));require(binary is not None,'Cannot parse '+str(path));return binary
 
+def symbol_names(binary,kind):
+ result=set()
+ for attr in (kind+"_symbols",kind+"_functions"):
+  if hasattr(binary,attr):result.update(s.name for s in getattr(binary,attr))
+ return result
+
 def architecture(binary,platform):
  text=str(getattr(binary.header,'machine',getattr(binary.header,'machine_type',getattr(binary.header,'cpu_type','')))).upper()
  arm=platform.endswith(('arm64','aarch64'))
@@ -79,7 +85,7 @@ def validate(bundle,platform,game,report):
   require(all(marker not in data for marker in (b'PROBE COMPLETE',b'SECTION COMPLETE',b'LIFECYCLE COMPLETE')),'Shipping library contains a test driver')
   require(hashlib.sha256(z.read('overlay/Audiores/Stream/midna_lament_adaptive.ast')).hexdigest()==AST_SHA,'Audio changed')
  binary=parse(library);arch=architecture(binary,platform)
- exported={s.name.lstrip('_') for s in binary.exported_symbols}
+ exported={name.lstrip('_') for name in symbol_names(binary,'exported')}
  require({'mod_initialize','mod_update','mod_shutdown','mod_meta'}<=exported,'Missing lifecycle/metadata exports')
  host=parse(game);architecture(host,platform);database=game_symbols(host)
  selected,hooks=requirements(platform);resolved={}
@@ -93,8 +99,8 @@ def validate(bundle,platform,game,report):
   resolved[name]={'rva':rva,'flags':flags}
  # Undefined game symbols may bind only to host exports. Runtime/system imports
  # are handled by platform linkers; game classes carry Itanium/MSVC names.
- imports={s.name for s in binary.imported_symbols}
- host_exports={s.name for s in host.exported_symbols}
+ imports=symbol_names(binary,'imported')
+ host_exports=symbol_names(host,'exported')
  missing=[]
  for name in imports:
   raw=name[1:] if platform.startswith(('macos-','ios-')) and name.startswith('__Z') else name
