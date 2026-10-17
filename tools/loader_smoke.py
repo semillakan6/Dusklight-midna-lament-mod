@@ -2,7 +2,7 @@
 --game, --mods, and --profile must be outside --source-profile.
 The game may reuse its normal graphics caches, but never its normal config/saves.
 """
-import argparse,subprocess,json,shutil,hashlib,time,ctypes
+import argparse,subprocess,json,shutil,hashlib,time,ctypes,zipfile
 from pathlib import Path
 p=argparse.ArgumentParser()
 p.add_argument("--game",type=Path,required=True)
@@ -28,7 +28,13 @@ before=fingerprint()
 section_hash=hashlib.sha256(a.section_save.read_bytes()).hexdigest() if a.section_save else None
 a.profile.mkdir(parents=True,exist_ok=True)
 config=json.loads((source/"config.json").read_text(encoding="utf-8"))
-config["mod.local_ruben_midna_lament_battle.enabled"]=True
+def enabled_key(mod_id):return "mod."+mod_id.replace("_","__").replace(".","_")+".enabled"
+for setting in list(config):
+ if setting.startswith("mod.") and setting.endswith(".enabled"):config[setting]=False
+for package in (a.game.parent/"mods").glob("*.dusk"):
+ with zipfile.ZipFile(package) as z:config[enabled_key(json.loads(z.read("mod.json"))["id"])]=False
+for package in a.mods.glob("*.dusk"):
+ with zipfile.ZipFile(package) as z:config[enabled_key(json.loads(z.read("mod.json"))["id"])]=True
 config["game.pauseOnFocusLost"]=False
 (a.profile/"config.json").write_text(json.dumps(config,indent=2),encoding="utf-8")
 if a.section_save:
