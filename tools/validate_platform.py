@@ -56,7 +56,11 @@ def acquire_game(platform,folder):
   if zipfile.is_zipfile(archive):
    with zipfile.ZipFile(archive) as z:z.extractall(extracted)
   else:
-   data=archive.read_bytes();offset=data.find(b'hsqs')
+   data=archive.read_bytes();offset=-1
+   for match in re.finditer(b'hsqs',data):
+    pos=match.start()
+    if pos+96<=len(data) and struct.unpack_from('<HH',data,pos+28)==(4,0) and struct.unpack_from('<Q',data,pos+40)[0]<=len(data)-pos:
+     offset=pos;break
    require(offset>=0,'AppImage has no SquashFS payload')
    subprocess.run(['unsquashfs','-no-progress','-d',str(extracted),'-o',str(offset),str(archive)],check=True,stdout=subprocess.DEVNULL)
  candidates=[p for p in extracted.rglob('*') if p.is_file() and p.name.lower() in ('dusklight','dusklight.exe','libmain.so')]
@@ -104,7 +108,7 @@ def validate(bundle,platform,game,report):
  missing=[]
  for name in imports:
   raw=name[1:] if platform.startswith(('macos-','ios-')) and name.startswith('__Z') else name
-  if raw.startswith('?') or re.match(r'_Z.*(?:JAI|JAS|JKR|Z2)',raw):
+  if raw.startswith('?') or re.match(r'_Z(?:N|TV|TI|TS)\d+(?:JAI|JAS|JKR|Z2)',raw):
    if name not in host_exports and raw not in host_exports:missing.append(name)
  require(not missing,'Missing game dynamic exports: '+repr(missing))
  result={'platform':platform,'architecture':arch,'game_version':'2.0.3','bundle_sha256':hashlib.sha256(bundle.read_bytes()).hexdigest(),'audio_sha256':AST_SHA,'required_symbols':resolved,'lifecycle_exports':'passed','game_dynamic_imports':'passed','test_injection':'absent','runtime_test':'not performed by this static check'}
