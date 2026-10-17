@@ -3,6 +3,9 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
 project(midna_lament_battle VERSION 1.0.2 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# The game headers use __cplusplus to decide whether nullptr needs emulation.
+# MSVC otherwise reports C++98 even in /std:c++20 mode.
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/Zc:__cplusplus>")
 set(DUSKLIGHT_VERSION "40457c6adb381928e4b5fef6ed459ed291edd5e2")
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchDusklight.cmake")
 add_subdirectory("${DUSKLIGHT_DIR}/sdk" dusklight-sdk EXCLUDE_FROM_ALL)
