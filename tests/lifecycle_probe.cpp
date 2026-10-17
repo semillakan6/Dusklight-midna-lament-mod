@@ -32,7 +32,7 @@ int stage=-1, detached=0;
 unsigned failures=0, wraps=0;
 u32 lastSample=0;
 JAIStream* current=nullptr;
-bool trackLoops=false;
+bool trackLoops=false, ready=false;
 struct Lock {
  alignas(JASCriticalSection) unsigned char memory[sizeof(JASCriticalSection)];
  Lock(){lock(memory);} ~Lock(){unlock(memory);}
@@ -89,15 +89,30 @@ MOD_EXPORT ModResult mod_initialize(ModError* error) {
  since=Clock::now();return mods::hook::add_post<Music>(music,&options);
 }
 MOD_EXPORT ModResult mod_update(ModError*) {
+ // Start the clock only after the real story section is playing. The title
+ // screen does not run the same audio framework and is not a valid SOS test.
+ if(!seq || !*seq)return MOD_OK;
+ if(!ready) {
+  Lock g;auto* stream=activeStream();
+  if((*seq)->getMainBgmID()!=Z2BGM_MIDNA_SOS || !stream || !stream->isPrepared())return MOD_OK;
+  since=Clock::now();ready=true;
+ }
  const float age=std::chrono::duration<float>(Clock::now()-since).count();
  const int next=age<7?-1:static_cast<int>((age-7)/4);
  if(next==stage || next>8 || !seq || !*seq)return MOD_OK;
  stage=next;
- if(stage==0){Lock g; start(*seq,Z2BGM_MIDNA_SOS,0,0);}
+ if(stage==0){Lock g;report(activeStream()!=nullptr,"story section is ready for lifecycle checks");}
  if(stage==1){Lock g;report(activeStream()!=nullptr,"production mod plays registered stream");disable(loader(),id);}
  if(stage==2){Lock g;report(detached>=1 && !activeStream(),"disable unloads mod and stops stream");
-             report((*seq)->mMainBgmHandle && (*seq)->mMainBgmHandle->getAuxiliary().params_.mVolume>0,
-                    "disable restores native Lament");enable(loader(),id);}
+             const float main=(*seq)->mMainBgmHandle?(*seq)->mMainBgmHandle->getAuxiliary().params_.mVolume:0;
+             const u32 subId=(*seq)->getSubBgmID();
+             const bool battle=subId==Z2BGM_BATTLE_NORMAL || subId==Z2BGM_BATTLE_TWILIGHT;
+             const float sub=(*seq)->mSubBgmHandle?(*seq)->mSubBgmHandle->getAuxiliary().params_.mVolume:0;
+             char text[180];std::snprintf(text,sizeof(text),"NATIVE RESTORE: main=%08x sub=%08x main_gain=%.6f sub_gain=%.6f",
+                (*seq)->getMainBgmID(),subId,main,sub);test_log->info(mod_ctx,text);
+             // Native battles fade the main track to zero. The selected battle
+             // sequence, rather than Lament, must then be audible after disable.
+             report(main>0 || (battle && sub>0),"disable restores native selected music");enable(loader(),id);}
  if(stage==3){Lock g;report(activeStream()!=nullptr,"enable restarts replacement");std::shared_ptr<void> op;reload(loader(),&op,id);}
  if(stage==4){Lock g;report(detached>=2 && activeStream(),"reload detaches old DLL and starts replacement");}
  if(stage==5){Lock g;trackLoops=true;current=activeStream();lastSample=0;test_log->info(mod_ctx,"NATIVE LOOP monitoring started");}
