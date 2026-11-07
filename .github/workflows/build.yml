@@ -108,7 +108,7 @@ jobs:
         shell: bash
         run: |
           cmake -S . -B build-probes -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTING=OFF -DLAMENT_SECTION_PROBE=ON -DLAMENT_LIFECYCLE_PROBE=ON
-          cmake --build build-probes --target section_probe_package lifecycle_probe_package --parallel
+          cmake --build build-probes --target section_probe_package lifecycle_probe_package hot_install_probe_package --parallel
       - name: Upload separate validation drivers
         if: matrix.platform == 'windows-amd64'
         uses: actions/upload-artifact@v7
@@ -117,6 +117,7 @@ jobs:
           path: |
             build-probes/mods/section_probe.dusk
             build-probes/mods/lifecycle_probe.dusk
+            build-probes/mods/hot_install_probe.dusk
           if-no-files-found: error
 
       - uses: actions/setup-python@v6

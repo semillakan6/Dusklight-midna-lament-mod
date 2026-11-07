@@ -1,8 +1,10 @@
 name: Runtime validation drivers
 on:
+  workflow_dispatch:
   push:
     branches: ["**"]
     paths:
+      - 'tests/hot_install_probe.cpp'
       - 'tests/lifecycle_probe.cpp'
       - 'tests/section_probe.cpp'
       - '.github/workflows/runtime-probes.yml'
@@ -21,11 +23,12 @@ jobs:
       - name: Configure validation drivers only
         run: cmake -S . -B build-probes -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTING=OFF -DLAMENT_SECTION_PROBE=ON -DLAMENT_LIFECYCLE_PROBE=ON
       - name: Build validation drivers only
-        run: cmake --build build-probes --target section_probe_package lifecycle_probe_package --parallel
+        run: cmake --build build-probes --target section_probe_package lifecycle_probe_package hot_install_probe_package --parallel
       - uses: actions/upload-artifact@v7
         with:
           name: probes-windows-amd64
           path: |
             build-probes/mods/section_probe.dusk
             build-probes/mods/lifecycle_probe.dusk
+            build-probes/mods/hot_install_probe.dusk
           if-no-files-found: error
