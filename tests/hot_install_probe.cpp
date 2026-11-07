@@ -50,8 +50,10 @@ void report(bool ok,const char* text){char s[300];std::snprintf(s,sizeof(s),"HOT
 extern "C" {
 MOD_EXPORT ModResult mod_initialize(ModError* error) {
  const char* path=std::getenv("MIDNA_TEST_STAGED_PACKAGE");
- if(!path)return mods::set_error(error,MOD_ERROR,"MIDNA_TEST_STAGED_PACKAGE must name a disposable staged package");
- staged=path;
+ const bool noInstall=std::getenv("MIDNA_TEST_NO_INSTALL")!=nullptr;
+ if(!path && !noInstall)return mods::set_error(error,MOD_ERROR,"MIDNA_TEST_STAGED_PACKAGE must name a disposable staged package");
+ if(path)staged=path;
+ if(noInstall)requested=true;
  auto resolve=[](const char* name,auto& fn){void* p=nullptr;if(svc_hook->resolve(mod_ctx,name,&p,nullptr)!=MOD_OK)return false;fn=reinterpret_cast<std::remove_reference_t<decltype(fn)>>(p);return true;};
  if(!resolve("dusk::mods::ModLoader::instance",loader)||!resolve("dusk::mods::ModLoader::request_install",install)||
     !resolve("?sInstance@?$JASGlobalInstance@VZ2SeqMgr@@@@2PEAVZ2SeqMgr@@EA",seq)||
