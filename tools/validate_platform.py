@@ -86,7 +86,7 @@ def validate(bundle,platform,game,report):
   require(z.testzip() is None,'ZIP CRC failure')
   name='lib/'+platform+('/mod.dll' if platform.startswith('windows-') else '/mod.so')
   library=stage/Path(name).name;data=z.read(name);library.write_bytes(data)
-  require(all(marker not in data for marker in (b'PROBE COMPLETE',b'SECTION COMPLETE',b'LIFECYCLE COMPLETE')),'Shipping library contains a test driver')
+  require(all(marker not in data for marker in (b'PROBE COMPLETE',b'SECTION COMPLETE',b'LIFECYCLE COMPLETE',b'HOT INSTALL')),'Shipping library contains a test driver')
   require(hashlib.sha256(z.read('overlay/Audiores/Stream/midna_lament_adaptive.ast')).hexdigest()==AST_SHA,'Audio changed')
  binary=parse(library);arch=architecture(binary,platform)
  exported={name.lstrip('_') for name in symbol_names(binary,'exported')}

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.26)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
-project(midna_lament_battle VERSION 1.0.3 LANGUAGES CXX)
+project(midna_lament_battle VERSION 1.0.4 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # The game headers use __cplusplus to decide whether nullptr needs emulation.
@@ -27,6 +27,10 @@ endif()
 option(LAMENT_LIFECYCLE_PROBE "Build disposable-profile lifecycle driver (never ship)" OFF)
 if(LAMENT_LIFECYCLE_PROBE)
   add_mod(lifecycle_probe FEATURES game SOURCES tests/lifecycle_probe.cpp MOD_JSON tests/lifecycle-probe.json)
+  if(WIN32)
+    add_mod(hot_install_probe FEATURES game SOURCES tests/hot_install_probe.cpp MOD_JSON tests/hot-install-probe.json)
+    target_include_directories(hot_install_probe PRIVATE "${DUSKLIGHT_DIR}/src")
+  endif()
 endif()
 
 option(LAMENT_SECTION_PROBE "Build disposable story-save audio observer (never ship)" OFF)

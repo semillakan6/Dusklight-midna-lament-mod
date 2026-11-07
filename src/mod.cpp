@@ -1,4 +1,7 @@
 #include <future>
+#include <cstdlib>
+#include <cstdint>
+#include <limits>
 #include "mods/service.hpp"
 #include "mods/svc/audio_res.h"
 #include "mods/svc/host.h"
@@ -8,7 +11,6 @@
 #include "JSystem/JAudio2/JASTaskThread.h"
 #include "JSystem/JAudio2/JAISoundChild.h"
 #include "JSystem/JAudio2/JAISeq.h"
-#include "JSystem/JKernel/JKRHeap.h"
 #include "Z2AudioLib/Z2SeqMgr.h"
 #include "Z2AudioLib/Z2SoundMgr.h"
 #include "Z2AudioLib/Z2SoundObjMgr.h"
@@ -29,7 +31,6 @@ int (*sendTask)(JASTaskThread*, JASThreadCallback, void*) = nullptr;
 u32 *blockSize = nullptr, *channelMax = nullptr;
 u8** readBuffer = nullptr;
 JASTaskThread** loadThread = nullptr;
-JKRHeap** systemHeap = nullptr;
 Z2SoundMgr** soundMgr = nullptr;
 Z2SeqMgr** seqMgr = nullptr;
 Z2SceneMgr** sceneMgr = nullptr;
@@ -297,8 +298,14 @@ void resizeOnDvdThread(void* raw) {
     // All reads into sReadBuffer run on this serialized worker. Swapping here
     // avoids freeing/changing a buffer while a DVD read is still using it.
     if ((*native::channelMax) < 4) {
-        auto* buffer = static_cast<u8*>(JKRHeap::alloc(
-            ((*native::blockSize) + 0x20) * 4, 32, (*native::systemHeap)));
+        // The fixed JKR system heap can be full after startup; its allocator
+        // aborts rather than returning null. Use process memory for this buffer.
+        // It must outlive this module: queued reads keep using it after unload.
+        const auto bytes = (static_cast<std::size_t>(*native::blockSize) + 0x20) * 4;
+        void* storage = bytes <= std::numeric_limits<std::size_t>::max() - 31
+            ? std::malloc(bytes + 31) : nullptr;
+        auto* buffer = storage ? reinterpret_cast<u8*>(
+            (reinterpret_cast<std::uintptr_t>(storage) + 31) & ~std::uintptr_t(31)) : nullptr;
         ok = buffer != nullptr;
         if (ok) {
             (*native::readBuffer) = buffer;
@@ -345,7 +352,6 @@ MOD_EXPORT ModResult mod_initialize(ModError* error) {
         !resolve(native::symbol("channelMax"), native::channelMax) ||
         !resolve(native::symbol("readBuffer"), native::readBuffer) ||
         !resolve(native::symbol("loadThread"), native::loadThread) ||
-        !resolve(native::symbol("systemHeap"), native::systemHeap) ||
         !resolve(native::symbol("soundMgr"), native::soundMgr) ||
         !resolve(native::symbol("seqMgr"), native::seqMgr) ||
         !resolve(native::symbol("sceneMgr"), native::sceneMgr))
@@ -402,8 +408,9 @@ MOD_EXPORT ModResult mod_shutdown(ModError*) {
         svc_audio_res->remove_sound_table(mod_ctx, streamRegistration);
         streamRegistration = 0;
     }
-    // Expanded reader memory belongs to the game, so async stop tasks and any
-    // other multichannel streams remain safe after this DLL is unloaded.
+    // The published reader buffer has process lifetime. Do not free or shrink
+    // it: async stop tasks and other streams can use it after this DLL unloads.
+    // Re-enabling sees channelMax >= 4 and reuses the existing allocation.
     return MOD_OK;
 }
 }

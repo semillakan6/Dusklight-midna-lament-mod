@@ -13,7 +13,6 @@ inline constexpr Symbol symbols[] = {
     {"channelMax", "?sChannelMax@JASAramStream@@2IA", "_ZN13JASAramStream11sChannelMaxE"},
     {"readBuffer", "?sReadBuffer@JASAramStream@@2PEAEEA", "_ZN13JASAramStream11sReadBufferE"},
     {"loadThread", "?sLoadThread@JASAramStream@@2PEAVJASTaskThread@@EA", "_ZN13JASAramStream11sLoadThreadE"},
-    {"systemHeap", "?sSystemHeap@JKRHeap@@2PEAV1@EA", "_ZN7JKRHeap11sSystemHeapE"},
     {"soundMgr", "?sInstance@?$JASGlobalInstance@VZ2SoundMgr@@@@2PEAVZ2SoundMgr@@EA", "_ZN17JASGlobalInstanceI10Z2SoundMgrE9sInstanceE"},
     {"seqMgr", "?sInstance@?$JASGlobalInstance@VZ2SeqMgr@@@@2PEAVZ2SeqMgr@@EA", "_ZN17JASGlobalInstanceI8Z2SeqMgrE9sInstanceE"},
     {"sceneMgr", "?sInstance@?$JASGlobalInstance@VZ2SceneMgr@@@@2PEAVZ2SceneMgr@@EA", "_ZN17JASGlobalInstanceI10Z2SceneMgrE9sInstanceE"},
