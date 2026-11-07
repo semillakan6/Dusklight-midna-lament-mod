@@ -19,6 +19,7 @@ DEFINE_MOD();
 IMPORT_SERVICE(HostService, host);
 IMPORT_SERVICE(HookService, svc_hook);
 IMPORT_SERVICE(LogService, test_log);
+DEFINE_HOOK_SYMBOL("PADRead", u32(PADStatus*), ReadPad);
 namespace {
 // Layout of the pinned 2.0.3 ModOperation, whose owning shared_ptr is returned
 // through the Windows member-function result buffer (as in lifecycle_probe).
@@ -46,6 +47,15 @@ int cycle=0;
 bool introAdvanced=false;
 struct Lock { alignas(JASCriticalSection) unsigned char data[sizeof(JASCriticalSection)]; Lock(){lock(data);} ~Lock(){unlock(data);} };
 void report(bool ok,const char* text){char s[300];std::snprintf(s,sizeof(s),"HOT INSTALL %s: %s",ok?"PASS":"FAIL",text);test_log->info(mod_ctx,s);if(!ok)++failures;}
+HookAction advanceIntro(ModContext*,void*,void*,void*) {
+ const float age=std::chrono::duration<float>(Clock::now()-since).count();
+ if(std::getenv("MIDNA_TEST_ADVANCE_INTRO") && !introAdvanced && age>=8 && seq && *seq){
+  if((*seq)->getMainBgmID()==Z2BGM_MIDNA_SOS){clearPad(0);introAdvanced=true;test_log->info(mod_ctx,"HOT INSTALL SETUP: intro input ended at native Lament selection");}
+  else {PADStatus pad{};const auto tick=static_cast<unsigned>(age*10);if(tick%10<2)pad.button=PAD_BUTTON_A;else if(tick%50==25)pad.button=PAD_BUTTON_START;virtualPad(0,&pad);}
+ }
+ return HOOK_CONTINUE;
+}
+
 }
 extern "C" {
 MOD_EXPORT ModResult mod_initialize(ModError* error) {
@@ -64,14 +74,12 @@ MOD_EXPORT ModResult mod_initialize(ModError* error) {
     !resolve("PADSetVirtualStatus",virtualPad)||!resolve("PADClearVirtualStatus",clearPad)||
     !resolve("??0JASCriticalSection@@QEAA@XZ",lock)||!resolve("??1JASCriticalSection@@QEAA@XZ",unlock))
   return mods::set_error(error,MOD_ERROR,"Live-install validation symbols unavailable");
- since=Clock::now();return MOD_OK;
+ since=Clock::now();
+ if(std::getenv("MIDNA_TEST_ADVANCE_INTRO"))return mods::hook::add_pre<ReadPad>(advanceIntro);
+ return MOD_OK;
 }
 MOD_EXPORT ModResult mod_update(ModError*) {
  const float age=std::chrono::duration<float>(Clock::now()-since).count();
- if(std::getenv("MIDNA_TEST_ADVANCE_INTRO") && !introAdvanced && age>=8 && seq && *seq){
-  if((*seq)->getMainBgmID()==Z2BGM_MIDNA_SOS){clearPad(0);introAdvanced=true;test_log->info(mod_ctx,"HOT INSTALL SETUP: intro input ended at native Lament selection");}
-  else {PADStatus pad{};const auto tick=static_cast<unsigned>(age*10);if(tick%10<2)pad.button=PAD_BUTTON_A;else if(tick%50==25)pad.button=PAD_BUTTON_START;virtualPad(0,&pad);}
- }
  if(!requested && age>=10 && seq && *seq && *buffer) {
   if(std::getenv("MIDNA_TEST_WAIT_FOR_LAMENT") && (*seq)->getMainBgmID()!=Z2BGM_MIDNA_SOS)return MOD_OK;
   {Lock guard;report(*channels==2,"first activation starts with the native two-channel reader");}

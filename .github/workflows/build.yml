@@ -5,6 +5,7 @@ on:
     branches: ["**"]
     tags: ["*"]
     paths-ignore:
+      - 'tests/hot_install_probe.cpp'
       - 'tests/lifecycle_probe.cpp'
       - 'tests/section_probe.cpp'
       - '.github/workflows/runtime-probes.yml' 
