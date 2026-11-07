@@ -1,7 +1,7 @@
 # Midna's Lament - Adaptive Battle
 
 Mod by **Nebur**. Arrangement by **Wesley Damaschino**.
-Requires **Dusklight 2.0.3**. Version **1.0.3**.
+Requires **Dusklight 2.0.3**. Version **1.0.4**.
 
 Replaces the music during the Midna's Lament story section. Extra combat
 instruments fade in over 0.5 seconds and out over 1.5 seconds. The base arrangement
@@ -26,7 +26,7 @@ are separate from in-game testing; consult the delivered validation reports.
 
 One four-channel PCM16 AST contains base L/R and combat L/R, sharing a playback
 cursor and loop. The existing audio, loop boundaries and common gain adjustment
-are unchanged in 1.0.3. The prepared AST is committed for identical CI builds;
+are unchanged in 1.0.4. The prepared AST is committed for identical CI builds;
 original WAVs are not included. Tools for regenerating it from the original
 aligned 48 kHz stereo stems are under `tools/`.
 
@@ -68,3 +68,11 @@ The musical arrangement by Wesley Damaschino, recordings, original Twilight
 Princess music, and game materials are excluded from this license. No ownership
 of those materials or permission to redistribute them is claimed. See
 `THIRD_PARTY_NOTICES.md` for credits and upstream notices.
+
+## Installing while the game is running
+
+Version 1.0.4 supports first-time installation from the mod browser after audio
+has initialized. Its four-channel reader uses a 32-byte-aligned process allocation
+instead of the game's fixed system heap. The buffer is retained until game exit,
+because queued reads and other streams may still use it after the mod unloads.
+Disabling and enabling the mod again reuses that buffer.

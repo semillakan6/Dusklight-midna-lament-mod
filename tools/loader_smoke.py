@@ -14,6 +14,7 @@ p.add_argument("--load-save",type=int,default=0)
 p.add_argument("--section-save",type=Path)
 p.add_argument("--backend",default="d3d12",choices=["d3d12","vulkan","null"])
 p.add_argument("--include-installed-mods",action="store_true")
+p.add_argument("--enable-mod",action="append",default=[],help="Enable a package that will be installed during the test")
 a=p.parse_args()
 source=a.source_profile.resolve()
 for destination in (a.game.resolve(),a.mods.resolve(),a.profile.resolve()):
@@ -35,6 +36,7 @@ for package in (a.game.parent/"mods").glob("*.dusk"):
  with zipfile.ZipFile(package) as z:config[enabled_key(json.loads(z.read("mod.json"))["id"])]=False
 for package in a.mods.glob("*.dusk"):
  with zipfile.ZipFile(package) as z:config[enabled_key(json.loads(z.read("mod.json"))["id"])]=True
+for mod_id in a.enable_mod:config[enabled_key(mod_id)]=True
 config["game.pauseOnFocusLost"]=False
 (a.profile/"config.json").write_text(json.dumps(config,indent=2),encoding="utf-8")
 if a.section_save:

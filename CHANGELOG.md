@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.4
+
+- Fixed a crash when installing or first enabling the mod while the game is running.
+- Kept the expanded audio reader safe across disable and reload.
+- Preserved the arrangement, shared loop, combat fades and cutscene handoff.
+
 ## 1.0.3
 
 - Licensed the mod's original code under GPL-3.0-only; third-party audio is excluded.
